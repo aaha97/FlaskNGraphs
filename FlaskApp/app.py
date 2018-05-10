@@ -26,14 +26,14 @@ def process(path):
     df[' START TIME'] = pd.to_datetime(df[' START TIME'],utc=True)
     g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
     g.plot(ax=axis,kind="line")
-    plt.savefig('images/temp.png')
-    #return "../images/temp.png"
-    canvas = FigureCanvas(fig)
+    plt.savefig('static/plot/temp.png')
+    return 'static/plot/temp.png'
+    '''canvas = FigureCanvas(fig)
     output = StringIO.StringIO()
     canvas.print_png(output)
     response = make_response(output.getvalue())
     response.mimetype = 'image/png'
-    return response
+    return response'''
     #print file.stream
 @app.route("/upload", methods = ['GET', 'POST'])
 def upload_file():
@@ -54,8 +54,8 @@ def upload_file():
             file.save(path)
             res = process(path)
             #res = process(path)
-            #return render_template('plot.html')
-            return res
+            return render_template('plot.html',path=res)
+            #return res
     return
 
 @app.route("/")
