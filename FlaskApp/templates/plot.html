@@ -1,13 +1,20 @@
 <html>
-  <head>
-    <title>image</title>
-  </head>
-  <body>
-  	
+<head>
+	<title>image</title>
+</head>
+<body>
+  	<!--
   	<div>
     	<img src = {{ imgpath }} alt="Image Placeholder">
     	<a href={{ imgpath }} download>download plot </a>
+
     </div>
-  
-  </body>
+-->
+<div>
+	<img src="data:image/png;base64,{{ img2 }}" >
+	<br>
+	<a href="data:image/png;base64,{{ img2 }}"> Download Plot </a>
+</div>
+
+</body>
 </html>
