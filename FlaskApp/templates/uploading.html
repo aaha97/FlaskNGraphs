@@ -1,0 +1,14 @@
+<html>
+<body>
+	<h1> Uploading file {{ name }}</h1>
+	<h2> Status: {{ status }} </h2>
+	{% if status=='Success' %}
+	<form method="get" action="{{ url_for('process') }}">
+		<input type="submit" value="PLOT">
+	</form>
+	<form method="get" action="{{ url_for('deletefile') }}">
+		<input type="submit" value="Delete">
+	</form>
+	{% endif %}
+</body>
+</html>
