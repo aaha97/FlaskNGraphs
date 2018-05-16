@@ -1,8 +1,8 @@
-import flask,os,werkzeug
+import flask,os,werkzeug,iso8601
 import pandas as pd
 UPLOAD_FOLDER = 'CSVS'
 ALLOWED_EXTENSIONS = set(['csv'])
-
+import matplotlib.pyplot as plt
 app = flask.Flask(__name__)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -35,6 +35,7 @@ def upload():
             print path
             file.save(path)
             flask.session['filepath'] = path
+            flask.session['filename'] = filename
             return flask.render_template("uploading.html",name=filename,status="Success")
     return flask.render_template("uploading.html",name=filename,status="Failure")
 @app.route("/deletefile",methods = ['GET'])
@@ -45,24 +46,26 @@ def deletefile():
     return flask.redirect(flask.url_for('main'))
 @app.route("/process", methods = ['GET', 'POST'])
 def process():
-    path = request.form['path']
-    name = request.form['name']
-
+    path = flask.session['filepath']
+    name = flask.session['filename']
+    plottype = flask.request.form['plottype']
     df = pd.read_csv(path)
     print df.head()
     iso8601.parse_date('2012-11-01T04:16:13-04:00')
     df[' START TIME'] = df[' START TIME'].apply(lambda x: iso8601.parse_date(x))
     df[' START TIME'] = pd.to_datetime(df[' START TIME'],utc=True)
     g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
-    g.plot(kind="line")
-    plt.savefig('static/plot/'+name+'line.png')
-    plt.clf()
-    g.plot(kind="bar")
-    plt.savefig('static/plot/'+name+'bar.png')
-    plt.clf()
-    g.plot(kind="barh")
-    plt.savefig('static/plot/'+name+'barh.png')
-    plt.clf()
+    g.plot(kind=plottype)
+    imgpath = 'static/plot/'+name+plottype+'.png'
+    plt.savefig(imgpath)
+    return flask.render_template('plot.html',imgpath=imgpath)
+    #plt.clf()
+    #g.plot(kind="bar")
+    #plt.savefig('static/plot/'+name+'bar.png')
+    #plt.clf()
+    #g.plot(kind="barh")
+    #plt.savefig('static/plot/'+name+'barh.png')
+    #plt.clf()
     #return ['static/plot/'+name+'line.png','static/plot/'+name+'bar.png','static/plot/'+name+'barh.png']
     #canvas = FigureCanvas(fig)
     #output = StringIO.StringIO()
