@@ -58,6 +58,7 @@ def process():
     path = flask.session['filepath']
     name = flask.session['filename']
     plottype = flask.request.form['plottype']
+    figdict={}
     df = pd.read_csv(path)
     print df.head()
     iso8601.parse_date('2012-11-01T04:16:13-04:00')
@@ -66,13 +67,45 @@ def process():
     g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
     g.plot(kind=plottype)
     imgpath = 'static/plot/'+name+plottype+'.png'
-    figfile = BytesIO()
-    plt.savefig(figfile, format='png')
-    figfile.seek(0)  # rewind to beginning of file
-    figdata_png = figfile.getvalue()
+    figfile1 = BytesIO()
+    plt.savefig(figfile1, format='png')
+    figfile1.seek(0)  # rewind to beginning of file
+    figdata_png = figfile1.getvalue()
     figdata_png = base64.b64encode(figdata_png)
+    figdict['selectmenu'] = figdata_png
+    plt.clf()
+    if flask.request.form.get('lineplot'):
+        g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
+        g.plot(kind='line')
+        figfile2 = BytesIO()
+        plt.savefig(figfile2, format='png')
+        figfile2.seek(0)  # rewind to beginning of file
+        figdata_png = figfile2.getvalue()
+        figdata_png = base64.b64encode(figdata_png)
+        figdict['line'] = figdata_png
+        plt.clf()
+    if flask.request.form.get('barplot'):
+        g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
+        g.plot(kind='bar')
+        figfile3 = BytesIO()
+        plt.savefig(figfile3, format='png')
+        figfile3.seek(0)  # rewind to beginning of file
+        figdata_png = figfile3.getvalue()
+        figdata_png = base64.b64encode(figdata_png)
+        figdict['bar'] = figdata_png
+        plt.clf()
+    if flask.request.form.get('barhplot'):
+        g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
+        g.plot(kind='barh')
+        figfile4 = BytesIO()
+        plt.savefig(figfile4, format='png')
+        figfile4.seek(0)  # rewind to beginning of file
+        figdata_png = figfile4.getvalue()
+        figdata_png = base64.b64encode(figdata_png)
+        figdict['barh'] = figdata_png
+        plt.clf()
+    return flask.render_template('plot.html',imgpath=imgpath,imgs=figdict)
     #plt.savefig(imgpath)
-    return flask.render_template('plot.html',imgpath=imgpath,img2=figdata_png)
     #plt.clf()
     #g.plot(kind="bar")
     #plt.savefig('static/plot/'+name+'bar.png')

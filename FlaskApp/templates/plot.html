@@ -10,11 +10,33 @@
 
     </div>
 -->
+{% if imgs.get('selectmenu',0)!=0 %}
 <div>
-	<img src="data:image/png;base64,{{ img2 }}" >
+	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
 	<br>
-	<a href="data:image/png;base64,{{ img2 }}"> Download Plot </a>
+	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
 </div>
-
+{% endif %}
+{% if imgs.get('line',0)!=0 %}
+<div>
+	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
+	<br>
+	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
+</div>
+{% endif %}
+{% if imgs.get('bar',0)!=0 %}
+<div>
+	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
+	<br>
+	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
+</div>
+{% endif %}
+{% if imgs.get('barh',0)!=0 %}
+<div>
+	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
+	<br>
+	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
+</div>
+{% endif %}
 </body>
 </html>
