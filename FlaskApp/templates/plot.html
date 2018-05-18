@@ -19,23 +19,23 @@
 {% endif %}
 {% if imgs.get('line',0)!=0 %}
 <div>
-	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
+	<img src="data:image/png;base64,{{ imgs['line'] }}" >
 	<br>
-	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
+	<a href="data:image/png;base64,{{ imgs['line'] }}"> Right click and save to Download Plot </a>
 </div>
 {% endif %}
 {% if imgs.get('bar',0)!=0 %}
 <div>
-	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
+	<img src="data:image/png;base64,{{ imgs['bar'] }}" >
 	<br>
-	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
+	<a href="data:image/png;base64,{{ imgs['bar'] }}"> Right click and save to Download Plot </a>
 </div>
 {% endif %}
 {% if imgs.get('barh',0)!=0 %}
 <div>
-	<img src="data:image/png;base64,{{ imgs['selectmenu'] }}" >
+	<img src="data:image/png;base64,{{ imgs['barh'] }}" >
 	<br>
-	<a href="data:image/png;base64,{{ imgs['selectmenu'] }}"> Right click and save to Download Plot </a>
+	<a href="data:image/png;base64,{{ imgs['barh'] }}"> Right click and save to Download Plot </a>
 </div>
 {% endif %}
 </body>

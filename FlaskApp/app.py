@@ -28,7 +28,11 @@ def upload():
             flash('No file part')
             return redirect(request.url)
 
-        file = flask.request.files['file']
+        #file = flask.request.files['file']
+        files = flask.request.files.getlist('file')
+        for i in files:
+            print i
+        file = files[0]
         # if user does not select file, browser also
         # submit an empty part without filename
         if file.filename == '':
@@ -38,7 +42,6 @@ def upload():
         if file and allowed_file(file.filename):
             filename = werkzeug.utils.secure_filename(file.filename)
             path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            print path
             file.save(path)
             flask.session['filepath'] = path
             flask.session['filename'] = filename
@@ -60,7 +63,7 @@ def process():
     plottype = flask.request.form['plottype']
     figdict={}
     df = pd.read_csv(path)
-    print df.head()
+    #print df.head()
     iso8601.parse_date('2012-11-01T04:16:13-04:00')
     df[' START TIME'] = df[' START TIME'].apply(lambda x: iso8601.parse_date(x))
     df[' START TIME'] = pd.to_datetime(df[' START TIME'],utc=True)
@@ -75,7 +78,7 @@ def process():
     figdict['selectmenu'] = figdata_png
     plt.clf()
     if flask.request.form.get('lineplot'):
-        g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
+        #g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
         g.plot(kind='line')
         figfile2 = BytesIO()
         plt.savefig(figfile2, format='png')
@@ -85,7 +88,7 @@ def process():
         figdict['line'] = figdata_png
         plt.clf()
     if flask.request.form.get('barplot'):
-        g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
+        #g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
         g.plot(kind='bar')
         figfile3 = BytesIO()
         plt.savefig(figfile3, format='png')
@@ -95,7 +98,7 @@ def process():
         figdict['bar'] = figdata_png
         plt.clf()
     if flask.request.form.get('barhplot'):
-        g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
+        #g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
         g.plot(kind='barh')
         figfile4 = BytesIO()
         plt.savefig(figfile4, format='png')
