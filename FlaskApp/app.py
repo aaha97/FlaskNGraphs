@@ -18,36 +18,50 @@ def allowed_file(filename):
 
 @app.route("/")
 def main():
+    if flask.session.get('active') and flask.session['active']==1:
+        return flask.redirect(flask.url_for('menu'))
+    flask.session['active']=0
+    flask.session.modified = True
     return flask.render_template('index.html')
-
-@app.route("/upload", methods = ['GET', 'POST'])
+@app.route("/menu",methods=['GET','POST'])
+def menu():
+    print flask.session['filename']
+    if flask.session.get('chosen_names'):
+        flask.session.pop('chosen_names')
+        flask.session.pop('chosen_paths')
+        flask.session.modified = True
+    return flask.render_template("menu.html",filenames=flask.session['filename'])
+@app.route("/upload", methods = ['POST'])
 def upload():
-    if flask.request.method == 'POST':
-        # check if the post request has the file part
-        if 'file' not in flask.request.files:
-            flash('No file part')
-            return redirect(request.url)
-
-        #file = flask.request.files['file']
-        files = flask.request.files.getlist('file')
-        for i in files:
-            print i
-        file = files[0]
-        # if user does not select file, browser also
-        # submit an empty part without filename
-        if file.filename == '':
+    if 'file' not in flask.request.files:
+        flash('No file part')
+        return flask.redirect(request.url)
+    filenames=[]
+    files = flask.request.files.getlist('file')
+    
+    for file in files:
+        if file.filename == '' and (not allowed_file(file.filename)):
             flash('No selected file')
-            return flask.redirect(request.url)
-
-        if file and allowed_file(file.filename):
+            return flask.redirect(request.url)    
+        else:
+            filename = werkzeug.utils.secure_filename(file.filename)
+            filenames.append(filename)
+    flask.session['filepath'] = []
+    flask.session['filename'] = []
+    flask.session.modified = True
+    try:
+        for file in files:
             filename = werkzeug.utils.secure_filename(file.filename)
             path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(path)
-            flask.session['filepath'] = path
-            flask.session['filename'] = filename
-            return flask.render_template("uploading.html",name=filename,status="Success")
-
-    return flask.render_template("uploading.html",name=filename,status="Failure")
+            flask.session['filepath'].append(path)
+            flask.session['filename'].append(filename)
+            flask.session.modified = True
+    except OSError as err:
+        return flask.redirect(request.url)
+    flask.session['active']=1
+    flask.session.modified = True
+    return flask.redirect(flask.url_for("menu"))
 
 @app.route("/deletefile",methods = ['GET'])
 def deletefile():
@@ -56,29 +70,47 @@ def deletefile():
     flask.session.pop('filepath')
     return flask.redirect(flask.url_for('main'))
 
-@app.route("/process", methods = ['GET', 'POST'])
+@app.route("/process", methods = ['POST'])
 def process():
-    path = flask.session['filepath']
-    name = flask.session['filename']
-    plottype = flask.request.form['plottype']
+    if flask.request.form['menu_choice'] == 'delete':
+        print flask.session['filename']
+        for name in flask.session['filename']:
+            if flask.request.form.get(name):
+                path = flask.session['filepath'][flask.session['filename'].index(name)]
+                os.remove(path)
+                flask.session['filepath'].remove(path)
+                flask.session['filename'].remove(name)
+                flask.session.modified = True
+        print flask.session['filename']
+        return flask.redirect(flask.url_for('menu'))
+    elif flask.request.form['menu_choice'] == 'histogram':
+        flask.session['chosen_names'] = []
+        flask.session['chosen_paths'] = []
+        for name in flask.session['filename']:
+            if flask.request.form.get(name):
+                path = flask.session['filepath'][flask.session['filename'].index(name)]
+                flask.session['chosen_paths'].append(path)
+                flask.session['chosen_names'].append(name)
+                flask.session.modified = True
+        return flask.redirect(flask.url_for('histogram'))
+@app.route("/histogram",methods = ['GET','POST'])
+def histogram():
+    path = flask.session['chosen_paths']
+    name = flask.session['chosen_names']
     figdict={}
-    df = pd.read_csv(path)
-    #print df.head()
-    iso8601.parse_date('2012-11-01T04:16:13-04:00')
-    df[' START TIME'] = df[' START TIME'].apply(lambda x: iso8601.parse_date(x))
-    df[' START TIME'] = pd.to_datetime(df[' START TIME'],utc=True)
-    g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
-    g.plot(kind=plottype)
-    imgpath = 'static/plot/'+name+plottype+'.png'
-    figfile1 = BytesIO()
-    plt.savefig(figfile1, format='png')
-    figfile1.seek(0)  # rewind to beginning of file
-    figdata_png = figfile1.getvalue()
-    figdata_png = base64.b64encode(figdata_png)
-    figdict['selectmenu'] = figdata_png
-    plt.clf()
+    df=''
+    i1 = flask.session['filepath'][0]
+    for path in flask.session['filepath']:
+        DF = pd.read_csv(path)
+        if path==i1:
+            df = DF
+        else:
+            df = pd.concat([df,DF])
+    #iso8601.parse_date('2012-11-01T04:16:13-04:00')
+    df['call_start'] = df['call_start'].apply(lambda x: iso8601.parse_date(x))
+    df['call_start'] = pd.to_datetime(df['call_start'],utc=True)
+    g = df['call_start'].groupby([df["call_start"].dt.year, df["call_start"].dt.month, df["call_start"].dt.day]).count()
     if flask.request.form.get('lineplot'):
-        #g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
         g.plot(kind='line')
         figfile2 = BytesIO()
         plt.savefig(figfile2, format='png')
@@ -88,7 +120,6 @@ def process():
         figdict['line'] = figdata_png
         plt.clf()
     if flask.request.form.get('barplot'):
-        #g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
         g.plot(kind='bar')
         figfile3 = BytesIO()
         plt.savefig(figfile3, format='png')
@@ -98,7 +129,6 @@ def process():
         figdict['bar'] = figdata_png
         plt.clf()
     if flask.request.form.get('barhplot'):
-        #g = df[' START TIME'].groupby([df[" START TIME"].dt.year, df[" START TIME"].dt.month, df[" START TIME"].dt.day]).count()
         g.plot(kind='barh')
         figfile4 = BytesIO()
         plt.savefig(figfile4, format='png')
@@ -107,7 +137,7 @@ def process():
         figdata_png = base64.b64encode(figdata_png)
         figdict['barh'] = figdata_png
         plt.clf()
-    return flask.render_template('plot.html',imgpath=imgpath,imgs=figdict)
+    return flask.render_template('uploading.html',imgs=figdict)
     #plt.savefig(imgpath)
     #plt.clf()
     #g.plot(kind="bar")
@@ -125,4 +155,4 @@ def process():
     return response'''
     #print file.stream
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

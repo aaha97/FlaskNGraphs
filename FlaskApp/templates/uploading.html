@@ -75,26 +75,12 @@
 </head>
 <body>
 	
-	{% if status=='Success' %}
 	<div class="container">
-		<h3> Uploading file {{ name }}</h3>
-		<h4> Status: {{ status }} </h4>
-		<form method=post action={{ url_for('process') }}>
+		
+		<form method=post action={{ url_for('histogram') }}>
 			<div class="row">
 				<div class="col-25">
-					<label for="plot">Plot Type</label>
-				</div>
-				<div class="col-75">
-					<select id="plot" name="plottype">
-						<option value="line">Line</option>
-						<option value="bar">Bar (vertical)</option>
-						<option value="barh">Bar (horizontal)</option>
-					</select>
-				</div>
-			</div>
-			<div class="row">
-				<div class="col-25">
-					Alternate plot menu
+					<h3>Plot Menu</h3>
 				</div>
 				<div class="col-75">
 					<input type="checkbox" name="lineplot">Line<br>
@@ -103,20 +89,44 @@
 				</div>
 			</div>
 			<div class="row">
-				<input type="submit" value="Upload">
+				<input type="submit" value="-GO-">
 			</div>
 		</form>
-		<br><br><br><br><br>
-		<form method="get" action="{{ url_for('deletefile') }}">
+		
+	</div>
+	<br><br><br><br><br>
+
+{% if imgs.get('line',0)!=0 %}
+<div>
+	<img src="data:image/png;base64,{{ imgs['line'] }}" >
+	<br>
+	<a href="data:image/png;base64,{{ imgs['line'] }}"> Right click and save to Download Plot </a>
+</div>
+<br><br><br><br><br>
+{% endif %}
+{% if imgs.get('bar',0)!=0 %}
+<div>
+	<img src="data:image/png;base64,{{ imgs['bar'] }}" >
+	<br>
+	<a href="data:image/png;base64,{{ imgs['bar'] }}"> Right click and save to Download Plot </a>
+</div>
+<br><br><br><br><br>
+{% endif %}
+{% if imgs.get('barh',0)!=0 %}
+<div>
+	<img src="data:image/png;base64,{{ imgs['barh'] }}" >
+	<br>
+	<a href="data:image/png;base64,{{ imgs['barh'] }}"> Right click and save to Download Plot </a>
+</div>
+<br><br><br><br><br>
+{% endif %}
+
+<div class="container">
+		<form action={{ url_for('menu') }} method=post >
 			<div class="row">
-				<h3>Click below to Delete the uploaded file and upload new</h3>
-			</div>
-			<div class="row">
-				<input type="submit" value="Delete">
+				<input type="submit" value="Back to Menu">
 			</div>
 		</form>
 	</div>
-	
-	{% endif %}
 </body>
 </html>

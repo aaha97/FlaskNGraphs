@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<title> CMS-CDR analysis </title>
 	<style>
 	* {
 		box-sizing: border-box;
@@ -75,22 +76,17 @@
 </style>
 </head>
 <body>
+	<h1>Welcome to CDR Analysis Menu</h1>
+	<h3>Upload the files to process below.</h3>
+	<h5>You can upload multiple files</h5>
 	<div class="container">
 		<form action={{ url_for('upload') }} method=post enctype=multipart/form-data >
-			<div class="row">
-				<div class="col-25">
-					<label for="fname">File Name (optional)</label>
-				</div>
-				<div class="col-75">
-					<input type="text" id="fname" name="customname" placeholder="File name..">
-				</div>
-			</div>
 			<div class="row">
 				<div class="col-25">
 					<label for="file">File</label>
 				</div>
 				<div class="col-75">
-					<input type=file name=file multiple="">
+					<input type=file name=file multiple required>
 				</div>
 			</div>
 			<div class="row">
