@@ -2,6 +2,8 @@ import flask,os,werkzeug,iso8601,base64
 import pandas as pd
 from io import BytesIO
 import matplotlib.pyplot as plt
+import numpy as np
+import graph_tool.all as gt
 
 UPLOAD_FOLDER = 'CSVS'
 ALLOWED_EXTENSIONS = set(['csv'])
@@ -15,6 +17,35 @@ app.config['SESSION_TYPE'] = 'filesystem'
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def parse_file(file):
+    print "parsing"
+    i=0
+    flag=0
+    while i>=0:
+        try:
+            print i
+            df = pd.read_csv(file,skiprows=i)
+            if len(df.columns)<4:
+                i=i+1
+                flag=1
+                print 'fail col size'
+            for name in df.columns:
+                if name==np.nan or name=='' or 'Unnamed: 1' == name:
+                    i=i+1
+                    flag=1
+                    print 'fail nan'
+                    break
+            if flag==0:
+                break
+            flag=0
+        except Exception as e:
+            print "fail here?",e
+            if 'No columns to parse from file' in e:
+                raise Exception('inconsistent rows in file')
+            i=i+1
+            continue
+    df.to_csv(file,index=False)
 
 @app.route("/")
 def main():
@@ -57,7 +88,8 @@ def upload():
             flask.session['filepath'].append(path)
             flask.session['filename'].append(filename)
             flask.session.modified = True
-    except OSError as err:
+            parse_file(path)
+    except:
         return flask.redirect(request.url)
     flask.session['active']=1
     flask.session.modified = True
@@ -81,8 +113,11 @@ def process():
                 flask.session['filepath'].remove(path)
                 flask.session['filename'].remove(name)
                 flask.session.modified = True
-        print flask.session['filename']
-        return flask.redirect(flask.url_for('menu'))
+        if len(flask.session['filename'])>0:
+            return flask.redirect(flask.url_for('menu'))
+        else:
+            flask.session['active']=0
+            return flask.redirect(flask.url_for('main'))
     elif flask.request.form['menu_choice'] == 'histogram':
         flask.session['chosen_names'] = []
         flask.session['chosen_paths'] = []
@@ -93,6 +128,16 @@ def process():
                 flask.session['chosen_names'].append(name)
                 flask.session.modified = True
         return flask.redirect(flask.url_for('histogram'))
+    elif flask.request.form['menu_choice'] == 'network':
+        flask.session['chosen_names'] = []
+        flask.session['chosen_paths'] = []
+        for name in flask.session['filename']:
+            if flask.request.form.get(name):
+                path = flask.session['filepath'][flask.session['filename'].index(name)]
+                flask.session['chosen_paths'].append(path)
+                flask.session['chosen_names'].append(name)
+                flask.session.modified = True
+        return flask.redirect(flask.url_for('network'))
 @app.route("/histogram",methods = ['GET','POST'])
 def histogram():
     path = flask.session['chosen_paths']
@@ -138,6 +183,30 @@ def histogram():
         figdict['barh'] = figdata_png
         plt.clf()
     return flask.render_template('uploading.html',imgs=figdict)
+@app.route("/network",methods = ['GET','POST'])
+def network():
+    path = flask.session['chosen_paths']
+    name = flask.session['chosen_names']
+    figdict={}
+    df=''
+    i1 = flask.session['filepath'][0]
+    for path in flask.session['filepath']:
+        DF = pd.read_csv(path)
+        if path==i1:
+            df = DF
+        else:
+            df = pd.concat([df,DF])
+    g = gt.Graph(directed=True)
+    g.add_edge_list(df.values,hashed=True)
+    pos = gt.arf_layout(g, max_iter=100,dt=1e-4)
+    figfile = BytesIO()
+    figdata_png = gt.graph_draw(g,pos=pos,output_size=(5000,5000),output=figfile,fmt="png")
+    figfile.seek(0)
+    figdata_png = figfile.getvalue()
+    figdata_png = base64.b64encode(figdata_png)
+    figdict['plot'] = figdata_png
+    plt.clf()
+    return flask.render_template('networkplot.html',imgs=figdict)
     #plt.savefig(imgpath)
     #plt.clf()
     #g.plot(kind="bar")
@@ -155,4 +224,4 @@ def histogram():
     return response'''
     #print file.stream
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0')
