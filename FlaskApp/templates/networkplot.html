@@ -78,9 +78,9 @@
 <body>
 {% if imgs.get('plot',0)!=0 %}
 <div>
-	<img src="data:image/png;base64,{{ imgs['line'] }}" >
+	<img src="data:image/png;base64,{{ imgs['plot'] }}" >
 	<br>
-	<a href="data:image/png;base64,{{ imgs['line'] }}"> Right click and save to Download Plot </a>
+	<a href="data:image/png;base64,{{ imgs['plot'] }}"> Right click and save to Download Plot </a>
 </div>
 {% endif %}
 <div class="container">

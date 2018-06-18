@@ -241,6 +241,7 @@ def network():
     path = flask.session['chosen_paths']
     name = flask.session['chosen_names']
     figdict={}
+
     df=''
     i1 = flask.session['filepath'][0]
     for path in flask.session['filepath']:
@@ -249,16 +250,32 @@ def network():
             df = DF
         else:
             df = pd.concat([df,DF])
+    df = df.drop(['datetime'],axis=1)
+
+    #actors = df['from'].tolist()+df['to'].tolist()
+    #actors = list(set(actors))
+    #actor_id = { str(actors[i]): i for i in xrange(len(actors)) }
+
+    #df['from_id'] = df.apply(lambda x: actor_id[str(x['from'])],axis=1)
+    #df['to_id'] = df.apply(lambda x: actor_id[str(x['to'])],axis=1)
+    #df['label_prop'] = df.apply(lambda x: str(x['from_id'])+"->"+str(x['to_id']),axis=1)
     g = gt.Graph(directed=True)
+    #g.add_vertex(n=len(actors))
+    #g.add_edge_list(df[['from_id','to_id']].values)
     g.add_edge_list(df.values,hashed=True)
+    #labels = g.new_ep(value_type="string",vals=df['label_prop'].tolist())
     pos = gt.arf_layout(g, max_iter=100,dt=1e-4)
     figfile = BytesIO()
-    figdata_png = gt.graph_draw(g,pos=pos,output_size=(5000,5000),output=figfile,fmt="png")
+    #figdata_png = gt.graphviz_draw(g,edge_text=labels,return_string=True)
+    #gt.graph_draw(g,pos=pos,edge_text=labels, output=figfile,fmt='png')
+    #print figdata_png[1]
+    gt.graph_draw(g,pos=pos,output_size=(1000,1000), output=figfile,fmt='png')
     figfile.seek(0)
     figdata_png = figfile.getvalue()
     figdata_png = base64.b64encode(figdata_png)
     figdict['plot'] = figdata_png
     plt.clf()
+    df.to_csv("test_file.csv",index=False)
     return flask.render_template('networkplot.html',imgs=figdict)
 if __name__ == "__main__":
     app.run(host='0.0.0.0',debug=True)
