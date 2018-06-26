@@ -76,14 +76,45 @@
 </style>
 </head>
 <body>
-{% if imgs.get('plot',0)!=0 %}
-<div>
-	<img src="data:image/png;base64,{{ imgs['plot'] }}" >
-	<br>
-	<a href="data:image/png;base64,{{ imgs['plot'] }}"> Right click and save to Download Plot </a>
-</div>
-{% endif %}
-<div class="container">
+	{% if imgs.get('plot',0)!=0 %}
+	<div>
+		<img src="data:image/png;base64,{{ imgs['plot'] }}" >
+		<br>
+		<a href="data:image/png;base64,{{ imgs['plot'] }}"> Right click and save to Download Plot </a>
+	</div>
+	{% endif %}
+	<div class="container">
+		<form action={{ url_for('network') }} method=post >
+			<div class="row">
+				<h3>Threshhold Values</h3>
+				<p> Note: Minimum should be greater than or equal to 1</p>
+				<p> Note: Put Maximum to -1 to ignore maximum flag</p>
+				<div class="col-25">
+					<label for="thresh_min">Minimum Threshhold</label>
+				</div>
+				<div class="col-75">
+					<input type="number" name="thresh_min" value=1>
+				</div>
+				<div class="col-25">
+					<label for="thresh_max">Maximum Threshhold</label>
+				</div>
+				<div class="col-75">
+					<input type="number" name="thresh_max" value=-1>
+				</div>
+
+			</div>
+			<div class="col-75">
+					<label for="thresh_max">Single link for multiple relations?</label>
+				</div>
+				<div class="col-25">
+					<input type="checkbox" name="single_links">
+				</div>
+			<div class="row">
+				<input type="submit" value="Re-Plot">
+			</div>
+		</form>
+	</div>
+	<div class="container">
 		<form action={{ url_for('menu') }} method=post >
 			<div class="row">
 				<input type="submit" value="Back to Menu">

@@ -13,13 +13,34 @@ ALLOWED_EXTENSIONS = set(['csv'])
 app = flask.Flask(__name__)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 app.secret_key = 'super secret key'
 app.config['SESSION_TYPE'] = 'filesystem'
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def freqs2cases(df, freq_col, cases_cols,thresh_min):
+    def itcases():
+        for i, row in df.iterrows():
+            for j in xrange(int(row[freq_col])-thresh_min):
+                yield row[cases_cols]
+    return pd.DataFrame(itcases())
+
+def thresh_filter(df,thresh_min,thresh_max,single_links):
+    print single_links
+    x = df.groupby(['from', 'to']).size().reset_index().rename(columns={0:'freq'})
+    x = x.loc[x['freq']>=thresh_min]
+    if thresh_max!=-1:
+        x = x.loc[x['freq']<=thresh_max]
+    #l1 = x['from'].tolist()
+    #l2 = x['to'].tolist()
+    #df = df.loc[(df['from'].isin(l1)) & (df['to'].isin(l2))]
+    if single_links==False:
+        df = freqs2cases(x, 'freq', ['from', 'to'],thresh_min)
+        return df
+    x = x.drop(['freq'],axis=1)
+    return x
 
 def parse_frame(df):
     col = df.columns.tolist()
@@ -49,21 +70,25 @@ def parse_frame(df):
     df = df.reset_index()
     t1 = date(1899,12,31)
     row = df.iloc[1]
-    try:
-        x = parse(row['time'])
-    except Exception as e:
+    if 'date' in df.columns.tolist():
+
         try:
-            df['time'] = df.apply(lambda r:str(timedelta(seconds=r['time']*86400)),axis=1)
-        except Exception as ee:
-            print "sad ",ee
-    try:
-        '''if len(row['date'])<=7:
-            df['datetime'] = df.apply(lambda row: (datetime.combine(t1+timedelta(int(float(row['date']))),parse(row['time']).time())).isoformat(),axis=1)
-        else:
-            df['datetime'] = df.apply(lambda row: (datetime.combine(parse(row['date']).date(),parse(row['time']).time())).isoformat(),axis=1)'''
-        df['datetime'] = df.apply(lambda row: (datetime.combine(t1+timedelta(int(float(row['date']))),parse(row['time']).time())).isoformat() if len(row['date'])<=7 else (datetime.combine(parse(row['date']).date(),parse(row['time']).time())).isoformat(),axis=1)
-    except Exception as e:
-        print "Exception: ",e
+            x = parse(row['time'])
+        except Exception as e:
+            try:
+                df['time'] = df.apply(lambda r:str(timedelta(seconds=r['time']*86400)),axis=1)
+            except Exception as ee:
+                print "sad ",ee
+        try:
+            '''if len(row['date'])<=7:
+                df['datetime'] = df.apply(lambda row: (datetime.combine(t1+timedelta(int(float(row['date']))),parse(row['time']).time())).isoformat(),axis=1)
+            else:
+                df['datetime'] = df.apply(lambda row: (datetime.combine(parse(row['date']).date(),parse(row['time']).time())).isoformat(),axis=1)'''
+            df['datetime'] = df.apply(lambda row: (datetime.combine(t1+timedelta(int(float(row['date']))),parse(row['time']).time())).isoformat() if len(row['date'])<=7 else (datetime.combine(parse(row['date']).date(),parse(row['time']).time())).isoformat(),axis=1)
+        except Exception as e:
+            print "Exception: ",e
+    else:
+        df['datetime'] = df['time']
     keeper = ['from','to','datetime']
     col = df.columns.tolist()
     for c in col:
@@ -106,6 +131,8 @@ def main():
     flask.session['active']=0
     flask.session.modified = True
     return flask.render_template('index.html')
+
+
 @app.route("/menu",methods=['GET','POST'])
 def menu():
     if flask.session.get('chosen_names'):
@@ -113,6 +140,8 @@ def menu():
         flask.session.pop('chosen_paths')
         flask.session.modified = True
     return flask.render_template("menu.html",filenames=flask.session['filename'])
+
+
 @app.route("/upload", methods = ['POST','GET'])
 def upload():
     if 'file' not in flask.request.files:
@@ -147,12 +176,15 @@ def upload():
     flask.session.modified = True
     return flask.redirect(flask.url_for("menu"))
 
+
+
 @app.route("/deletefile",methods = ['POST','GET'])
 def deletefile():
     path = flask.session['filepath']
     os.remove(path)
     flask.session.pop('filepath')
     return flask.redirect(flask.url_for('main'))
+
 
 @app.route("/process", methods = ['POST','GET'])
 def process():
@@ -189,6 +221,8 @@ def process():
                 flask.session['chosen_names'].append(name)
                 flask.session.modified = True
         return flask.redirect(flask.url_for('network'))
+
+
 @app.route("/histogram",methods = ['GET','POST'])
 def histogram():
     path = flask.session['chosen_paths']
@@ -207,7 +241,7 @@ def histogram():
     df['datetime'] = pd.to_datetime(df['datetime'])
     print 'min',df['datetime'].min(axis=1)
     print 'max',df['datetime'].max(axis=1)
-    g = df['datetime'].groupby([df["datetime"].dt.year, df["datetime"].dt.month, df["datetime"].dt.day]).count()
+    g = df['datetime'].groupby([df["datetime"].dt.year.rename('year'), df["datetime"].dt.month.rename('month'), df["datetime"].dt.day.rename('day')]).count()
     if flask.request.form.get('lineplot'):
         g.plot(kind='line')
         figfile2 = BytesIO()
@@ -236,6 +270,8 @@ def histogram():
         figdict['barh'] = figdata_png
         plt.clf()
     return flask.render_template('uploading.html',imgs=figdict)
+
+
 @app.route("/network",methods = ['GET','POST'])
 def network():
     path = flask.session['chosen_paths']
@@ -251,7 +287,12 @@ def network():
         else:
             df = pd.concat([df,DF])
     df = df.drop(['datetime'],axis=1)
-
+    thresh_min = int(flask.request.form.get('thresh_min',1))
+    thresh_max = int(flask.request.form.get('thresh_max',-1))
+    single_links = flask.request.form.get('single_links',False)
+    if single_links != False:
+        single_links=True
+    df = thresh_filter(df,thresh_min,thresh_max,single_links)
     #actors = df['from'].tolist()+df['to'].tolist()
     #actors = list(set(actors))
     #actor_id = { str(actors[i]): i for i in xrange(len(actors)) }
@@ -277,5 +318,7 @@ def network():
     plt.clf()
     df.to_csv("test_file.csv",index=False)
     return flask.render_template('networkplot.html',imgs=figdict)
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0',debug=True)
